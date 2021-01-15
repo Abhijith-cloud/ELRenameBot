@@ -32,6 +32,10 @@
       "description": "allow only pre-defined users to use this bot",
       "value": ""
     },
+    "UPDATE_CHANNEL": {
+      "description": "Your telegram channel for force subscription.",
+      "value": ""
+    },
     "BANNED_USERS": {
       "description": "Banned Unwanted members..",
       "value": "",

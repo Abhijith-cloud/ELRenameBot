@@ -18,6 +18,7 @@ from script import script
 
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ForceReply
+from pyrogram.errors import UserNotParticipant
 
 from plugins.helpers import progress_for_pyrogram
 
@@ -30,9 +31,30 @@ from database.database import *
 
 async def force_name(bot, message):
 
+    update_channel = Config.UPDATE_CHANNEL
+    if update_channel:
+        try:
+            user = await bot.get_chat_member(update_channel, message.chat.id)
+            if user.status == "kicked":
+               await update.reply_text("You are banned from using this bot !!")
+               return
+        except UserNotParticipant:
+            #await update.reply_text(f"You must join @{update_channel} to use Me !!")
+            await message.reply_text(
+                text="You must join my update channel to use ME !!",
+                reply_markup=InlineKeyboardMarkup([
+                    [ InlineKeyboardButton(text="🤝 Join Channel", url=f"https://t.me/{update_channel}")]
+              ])
+            )
+            return
+        except Exception:
+            await update.reply_text("Something went wrong, contact my Support Group")
+            return
+
+
     await bot.send_message(
         message.reply_to_message.from_user.id,
-        "Enter new name for media\n\nNote : Extension not required",
+        "Send me the new name\n\n__Note : Extension not required__",
         reply_to_message_id=message.reply_to_message.message_id,
         reply_markup=ForceReply(True)
     )
@@ -40,27 +62,28 @@ async def force_name(bot, message):
 
 @Client.on_message(filters.private & filters.reply & filters.text)
 async def cus_name(bot, message):
-    
+
+
     if (message.reply_to_message.reply_markup) and isinstance(message.reply_to_message.reply_markup, ForceReply):
-        asyncio.create_task(rename_doc(bot, message))     
+        asyncio.create_task(rename_doc(bot, message))
     else:
         print('No media present')
 
-    
+
 async def rename_doc(bot, message):
-    
+
     mssg = await bot.get_messages(
         message.chat.id,
         message.reply_to_message.message_id
-    )    
-    
+    )
+
     media = mssg.reply_to_message
 
-    
+
     if media.empty:
         await message.reply_text('Why did you delete that 😕', True)
         return
-        
+
     filetype = media.document or media.video or media.audio or media.voice or media.video_note
     try:
         actualname = filetype.file_name
@@ -74,7 +97,7 @@ async def rename_doc(bot, message):
         message_ids=message.reply_to_message.message_id,
         revoke=True
     )
-    
+
     if message.from_user.id not in Config.BANNED_USERS:
         file_name = message.text
         description = script.CUSTOM_CAPTION_UL_FILE.format(newname=file_name)
@@ -92,7 +115,7 @@ async def rename_doc(bot, message):
             text=script.DOWNLOAD_START,
             reply_to_message_id=message.message_id
         )
-        
+
         c_time = time.time()
         the_real_download_location = await bot.download_media(
             message=media,
